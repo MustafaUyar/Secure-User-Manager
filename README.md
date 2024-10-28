@@ -20,7 +20,7 @@ SecureUserManager, kullanıcı bilgilerini güvenli bir şekilde saklamak ve yö
 
 1. Projeyi bilgisayarınıza klonlayın:
    ```bash
-   git clone https://github.com/kullaniciadi/SecureUserManager.git
+   git clone https://github.com/MustafaUyar/Secure-User-Manager.git
    cd SecureUserManager
    ```
 
