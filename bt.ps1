@@ -1,8 +1,12 @@
 ﻿# JSON dosya yolu
 $dosyaYolu = ".\bt.json"
+$ftpBilgileriDosyaYolu = ".\settings.json"
+$ftpYuklenenDosya = "bt.json"
+$ftpGelenDosya = "bt_yedek.json"
 
 # Kullanıcıdan anahtar kelimeyi al ve Base64 formatına çevir
 $anahtarKelime = Read-Host "Lütfen şifreleme anahtarı olarak kullanacağınız kelimeyi girin"
+
 
 # Anahtarın boyutunu ayarla (256-bit için 32 bayt)
 $desiredLength = 32
@@ -62,6 +66,7 @@ function Decrypt-Data {
 }
 
 # JSON dosyasını oku veya boş bir dizi oluştur
+
 function VerileriOku {
     param (
         [string]$dosyaYolu,
@@ -90,6 +95,7 @@ function VerileriOku {
         return @()
     }
 }
+
 
 
 # Güçlü şifre oluşturma fonksiyonu
@@ -171,7 +177,8 @@ function KullaniciKaydet {
     $encryptedData = Encrypt-Data -Data $jsonData -Key $sifrelemeAnahtari
     Set-Content -Path $dosyaYolu -Value $encryptedData -Encoding UTF8
 
-    Write-Output "`nKullanıcı başarıyla kaydedildi. Kullanıcı ID: $yeniID`n"
+    Write-Host "`nKullanıcı başarıyla kaydedildi." -ForegroundColor Green
+    Write-Host "Kullanıcı ID: $yeniID`n" -ForegroundColor Cyan
 }
 
 # Kayıtlı kullanıcıları listele
@@ -183,15 +190,19 @@ function KullaniciListele {
 
     $kullaniciVerileri = VerileriOku -dosyaYolu $dosyaYolu -sifrelemeAnahtari $sifrelemeAnahtari
     if ($kullaniciVerileri.Count -eq 0) {
-        Write-Output "`nKayıtlı kullanıcı yok.`n"
+        Write-Host "`nKayıtlı kullanıcı yok.`n" -ForegroundColor Red
     } else {
-        Write-Output "`nKayıtlı Kullanıcılar:"
+        Write-Host "`nKayıtlı Kullanıcılar:" -ForegroundColor Yellow
         foreach ($kullanici in $kullaniciVerileri) {
-            Write-Output "ID: $($kullanici.ID), Hesap: $($kullanici.Hesap), Email: $($kullanici.Email), Şifre: $($kullanici.Sifre)"
+            Write-Host "ID: $($kullanici.ID), " -NoNewline
+            Write-Host "Hesap: $($kullanici.Hesap)" -ForegroundColor Cyan -NoNewline
+            Write-Host ", Email: $($kullanici.Email)" -ForegroundColor Magenta -NoNewline
+            Write-Host ", Şifre: $($kullanici.Sifre)" -ForegroundColor Green
         }
-        Write-Output ""
+        Write-Host ""
     }
 }
+
 
 # Kullanıcı kaydını ID ile sil
 function KullaniciSil {
@@ -205,15 +216,16 @@ function KullaniciSil {
     $yeniVeriler = $kullaniciVerileri | Where-Object { $_.ID -ne $id }
 
     if ($yeniVeriler.Count -eq $kullaniciVerileri.Count) {
-        Write-Output "`nSilinecek kullanıcı bulunamadı.`n"
+        Write-Host "`nSilinecek kullanıcı bulunamadı.`n" -ForegroundColor Red
     } else {
         $jsonData = $yeniVeriler | ConvertTo-Json -Depth 3
         $encryptedData = Encrypt-Data -Data $jsonData -Key $sifrelemeAnahtari
         Set-Content -Path $dosyaYolu -Value $encryptedData -Encoding UTF8
 
-        Write-Output "`nKullanıcı başarıyla silindi.`n"
+        Write-Host "`nKullanıcı başarıyla silindi.`n" -ForegroundColor Green
     }
 }
+
 
 # Kayıtlı kullanıcıları arama
 function KullaniciAra {
@@ -229,15 +241,16 @@ function KullaniciAra {
     }
 
     if ($sonuc.Count -eq 0) {
-        Write-Output "`nArama kriterine uygun kullanıcı bulunamadı.`n"
+        Write-Host "`nArama kriterine uygun kullanıcı bulunamadı.`n" -ForegroundColor Red
     } else {
-        Write-Output "`nArama Sonuçları:"
+        Write-Host "`nArama Sonuçları:" -ForegroundColor Green
         foreach ($kullanici in $sonuc) {
-            Write-Output "ID: $($kullanici.ID), Hesap: $($kullanici.Hesap), Email: $($kullanici.Email), Şifre: $($kullanici.Sifre)"
+            Write-Host "ID: $($kullanici.ID), Hesap: $($kullanici.Hesap), Email: $($kullanici.Email), Şifre: $($kullanici.Sifre)" -ForegroundColor White
         }
-        Write-Output ""
+        Write-Host ""
     }
 }
+
 # Sunucu Ayarlarını Kaydetme ve Yükleme Fonksiyonları
 function SunucuAyarlariniKaydet {
     param (
@@ -254,11 +267,14 @@ function SunucuAyarlariniKaydet {
         FtpAdres = $ftpAdres
         FtpKonum = $ftpKonum
     }
+    
     $jsonData = $ayarlar | ConvertTo-Json -Depth 3
     $encryptedData = Encrypt-Data -Data $jsonData -Key $sifrelemeAnahtari
     Set-Content -Path $dosyaYolu -Value $encryptedData -Encoding UTF8
-    Write-Output "`nSunucu ayarları başarıyla kaydedildi.`n"
+    
+    Write-Host "`nSunucu ayarları başarıyla kaydedildi." -ForegroundColor Green
 }
+
 
 function SunucuAyarlariniYukle {
     param (
@@ -286,30 +302,22 @@ function FtpYedekYukle {
         [string]$ftpKullaniciAdi,
         [string]$ftpSifre,
         [string]$ftpAdres,
-        [string]$ftpKonum,  # ftp konumunu klasör olarak alıyoruz
-        [string]$dosyaYolu   # yüklemek istediğimiz dosyanın adını alıyoruz
+        [string]$ftpKonum,  # FTP konumunu klasör olarak alıyoruz
+        [string]$dosyaYolu   # Yüklemek istediğimiz dosyanın adını alıyoruz
     )
 
     $currentDirectory = Get-Location
     $fullDosyaYolu = [System.IO.Path]::GetFullPath((Join-Path -Path $currentDirectory -ChildPath $dosyaYolu))
 
-    # FTP URI'sini oluştur
+    # FTP URI'sini oluştur (ftpKonum'un sonuna / ekleniyor)
     $ftpUri = if ($ftpAdres.StartsWith("ftp://")) { 
-        "$ftpAdres/$ftpKonum$(Split-Path -Leaf $dosyaYolu)"  # Dosya adını almak için Split-Path kullanıyoruz
+        "$ftpAdres/$ftpKonum/$($dosyaYolu)"  # $dosyaYolu doğrudan kullanılıyor
     } else { 
-        "ftp://$ftpAdres/$ftpKonum$(Split-Path -Leaf $dosyaYolu)" 
+        "ftp://$ftpAdres/$ftpKonum/$($dosyaYolu)" 
     }
 
-    # $ftpKonum'un sonuna bir eğik çizgi ekleyerek doğru konum oluşturma
-    $ftpKonum = "$ftpKonum/"
-    $ftpUri = if ($ftpAdres.StartsWith("ftp://")) { 
-        "$ftpAdres/$ftpKonum$(Split-Path -Leaf $dosyaYolu)"  
-    } else { 
-        "ftp://$ftpAdres/$ftpKonum$(Split-Path -Leaf $dosyaYolu)" 
-    }
-
-    Write-Output "`nKopyalamaya çalıştığı adres: $ftpUri`n"
-    Write-Output "`nDosya okunuyor ve gönderilmeye hazırlanıyor: $fullDosyaYolu`n"
+    Write-Host "`nKopyalamaya çalıştığı adres: $ftpUri`n" -ForegroundColor Cyan
+    Write-Host "Dosya okunuyor ve gönderilmeye hazırlanıyor: $fullDosyaYolu`n" -ForegroundColor Yellow
 
     try {
         # FTP isteğini oluştur
@@ -325,7 +333,7 @@ function FtpYedekYukle {
         $ftpRequest.ContentLength = $fileContent.Length
 
         # Hata ayıklama
-        Write-Output "Yükleniyor... Lütfen bekleyin."
+        Write-Host "Yükleniyor... Lütfen bekleyin." -ForegroundColor Yellow
 
         # Akışa yazma
         $requestStream = $ftpRequest.GetRequestStream()
@@ -334,33 +342,163 @@ function FtpYedekYukle {
 
         # Yanıt alma
         $ftpResponse = $ftpRequest.GetResponse()
-        Write-Output "`nYükleme başarılı: $fullDosyaYolu dosyası $ftpUri adresine yüklendi (Kullanıcı: $ftpKullaniciAdi)`n"
+        Write-Host "`nYükleme başarılı: $fullDosyaYolu dosyası $ftpUri adresine yüklendi.`n" -ForegroundColor Green
         $ftpResponse.Close()
     }
     catch {
-        Write-Output "`nYükleme sırasında bir hata oluştu: $_`n"
-        Write-Output "`nKopyalamaya çalıştığı adres: $ftpUri`n"
-        Write-Output "`nFTP Kullanıcı Adı: $ftpKullaniciAdi`n"
-        Write-Output "`nFTP Şifre: $ftpSifre`n"
-        Write-Output "Lütfen FTP konumunun ve dosya yolunun doğru olduğundan emin olun." 
+        Write-Host "`nYükleme sırasında bir hata oluştu: $_`n" -ForegroundColor Red
+        Write-Host "Lütfen FTP konumunun ve dosya yolunun doğru olduğundan emin olun." -ForegroundColor Yellow
+    }
+}
+
+
+function HesapGuncelle {
+    param (
+        [int]$kullaniciID,
+        [string]$yeniHesap,
+        [string]$yeniEmail,
+        [string]$yeniSifre,
+        [string]$sifrelemeAnahtari
+    )
+
+    # Dosya yolunu kontrol et
+    if (-not [string]::IsNullOrWhiteSpace($dosyaYolu)) {
+        # Dosyanın var olup olmadığını kontrol et
+        if (Test-Path -Path $dosyaYolu) {
+            # Verileri oku
+            $kullaniciVerileri = VerileriOku -dosyaYolu $dosyaYolu -sifrelemeAnahtari $sifrelemeAnahtari
+
+            # Belirtilen ID ile kullanıcıyı bul
+            $kullanici = $kullaniciVerileri | Where-Object { $_.ID -eq $kullaniciID }
+            if ($null -eq $kullanici) {
+                Write-Output "Hata: Kullanıcı bulunamadı. ID: $kullaniciID"
+                 Write-Output "Hata: Dosya yolu geçersiz veya boş. Dosya Yolu: $dosyaYolu"
+                return
+            }
+
+            # Kullanıcı verilerini güncelle
+            $kullanici.Hesap = $yeniHesap
+            $kullanici.Email = $yeniEmail
+            $kullanici.Sifre = $yeniSifre
+
+            # Verileri geri yaz
+            $jsonData = $kullaniciVerileri | ConvertTo-Json -Depth 3
+            $encryptedData = Encrypt-Data -Data $jsonData -Key $sifrelemeAnahtari
+            Set-Content -Path $dosyaYolu -Value $encryptedData -Encoding UTF8
+
+            Write-Output "Kullanıcı başarıyla güncellendi. ID: $kullaniciID"
+        } else {
+            Write-Output "Hata: Dosya bulunamadı: $dosyaYolu"
+        }
+    } else {
+        Write-Output "Hata: Dosya yolu geçersiz veya boş. Dosya Yolu: $dosyaYolu"
+    }
+}
+
+function FtpYedekIndir {
+    param (
+        [string]$ftpKullaniciAdi,
+        [string]$ftpSifre,
+        [string]$ftpAdres,
+        [string]$ftpKonum,
+        [string]$dosyaAdi,
+        [string]$hedefDosyaAdi
+    )
+
+    # FTP URI'sini oluştur
+    $ftpUri = if ($ftpAdres.StartsWith("ftp://")) { 
+        "$ftpAdres/$ftpKonum/$dosyaAdi" 
+    } else { 
+        "ftp://$ftpAdres/$ftpKonum/$dosyaAdi" 
+    }
+
+    # İndirme hedef dosya yolunu ayarla
+    $currentDirectory = (Get-Location).Path
+    $hedefDosyaYolu = Join-Path -Path $currentDirectory -ChildPath $hedefDosyaAdi
+
+    try {
+        Write-Output "`nDosya indiriliyor: $ftpUri"
+        
+        # WebClient oluştur ve kimlik bilgilerini ayarla
+        $webClient = New-Object System.Net.WebClient
+        $webClient.Credentials = New-Object System.Net.NetworkCredential($ftpKullaniciAdi, $ftpSifre)
+        
+        # Dosya indirme işlemi
+        $webClient.DownloadFile($ftpUri, $hedefDosyaYolu)
+        Write-Output "`nVeritabanı dosyası başarıyla '$hedefDosyaYolu' olarak indirildi.`n"
+        
+    } catch {
+        # Hata durumunda daha fazla bilgi yazdır
+        if ($_.Exception.Response) {
+            $statusCode = $_.Exception.Response.StatusCode
+            $statusDescription = $_.Exception.Response.StatusDescription
+            
+            if ($statusCode -eq 550) {
+                Write-Output "`nYedek dosyası FTP'de bulunmuyor.`n"
+            } else {
+                Write-Output "`nHata: $statusCode - $statusDescription`n"
+            }
+        } else {
+            Write-Output "`nHata: $($_.Exception.Message)`n"
+        }
+        Write-Output "`nFTP sunucusunda daha önce alınmış herhangi bir yedek bulunmuyor.`n"
     }
 }
 
 
 
+
+function GirisKontrol {
+    if (-not (Test-Path -Path $dosyaYolu)) {
+        Write-Output "Veri dosyası bulunamadı, girişe izin verildi."
+
+        if (Test-Path -Path $ftpBilgileriDosyaYolu) {
+            Remove-Item -Path $ftpBilgileriDosyaYolu -Force
+            Write-Output "FTP Ayar dosyası bulundu ve silindi."
+        }
+
+        AnaMenu
+        return
+    }
+
+    $veriler = VerileriOku -dosyaYolu $dosyaYolu -sifrelemeAnahtari $sifrelemeAnahtari
+
+    if ($veriler.Count -eq 0) {
+        Write-Output "Hatalı anahtar kelime. Ana menüye erişim engellendi."
+        exit  
+    } else {
+        Write-Output "Giriş başarılı."
+        AnaMenu  
+    }
+}
+
+
 function AnaMenu {
-    Clear-Host  # Ekranı temizler
-    Write-Output "`nSeçim Yapın:"
-    Write-Output "1 - Yeni Kullanıcı Kaydet"
-    Write-Output "2 - Kayıtlı Kullanıcıları Listele"
-    Write-Output "3 - Kullanıcı Ara"
-    Write-Output "4 - Güvenli Şifre ile Kullanıcı Kaydet"
-    Write-Output "5 - Kullanıcı Sil (ID ile)"
-    Write-Output "6 - Veritabanı Yedeğini FTP'ye Yükle"
-    Write-Output "7 - Veritabanını FTP'den Çek"
-	Write-Output "8 - Sunucu Ayarları"
-    Write-Output "0 - Çıkış"
-    Write-Output ""
+   Clear-Host
+
+# Menü başlığı ve ayırıcı çizgi
+Write-Host "====================" -ForegroundColor DarkCyan
+Write-Host "     ANA MENÜ       " -ForegroundColor Cyan
+Write-Host "====================" -ForegroundColor DarkCyan
+Write-Host ""
+
+# Menü seçenekleri
+Write-Host "1 - Yeni Kullanıcı Kaydet" -ForegroundColor Green
+Write-Host "2 - Kayıtlı Kullanıcıları Listele" -ForegroundColor Green
+Write-Host "3 - Hesap Bilgilerini Güncelle (ID ile)" -ForegroundColor Green
+Write-Host "4 - Kullanıcı Ara" -ForegroundColor Green
+Write-Host "5 - Güvenli Şifre ile Kullanıcı Kaydet" -ForegroundColor Green
+Write-Host "6 - Kullanıcı Sil (ID ile)" -ForegroundColor Green
+Write-Host "7 - Veritabanı Yedeğini FTP'ye Yükle" -ForegroundColor Green
+Write-Host "8 - Veritabanını FTP'den Çek" -ForegroundColor Green
+Write-Host "9 - Sunucu Ayarları" -ForegroundColor Green
+Write-Host "0 - Çıkış" -ForegroundColor Red
+
+# Alt çizgi ve seçim yönlendirmesi
+Write-Host ""
+Write-Host "====================" -ForegroundColor DarkCyan
+Write-Host "Bir seçim yapın:" -ForegroundColor Yellow
+Write-Host "====================" -ForegroundColor DarkCyan
     $secim = Read-Host "Seçiminiz"
     switch ($secim) {
        
@@ -381,12 +519,68 @@ function AnaMenu {
             KullaniciListele -dosyaYolu $dosyaYolu -sifrelemeAnahtari $sifrelemeAnahtari
             Read-Host "`nListeleme tamamlandı. Ana menüye dönmek için bir tuşa basın..."
         }
-        "3" {
+
+         "3" {
+    $id = Read-Host "Güncellenecek hesabın ID'sini girin"
+    if ([int]::TryParse($id, [ref]$null)) {
+        $id = [int]$id  # ID’yi tam sayıya çeviriyoruz
+
+        # Kullanıcı verilerini oku
+        $kullaniciVerileri = VerileriOku -dosyaYolu $dosyaYolu -sifrelemeAnahtari $sifrelemeAnahtari
+
+        # Belirtilen ID ile kullanıcıyı bul
+        $kullanici = $kullaniciVerileri | Where-Object { $_.ID -eq $id }
+        if ($null -eq $kullanici) {
+            Write-Host "Kullanıcı bulunamadı: ID = $id" -ForegroundColor Red
+            return
+        }
+
+        # Mevcut bilgileri göster
+    Write-Host "`nMevcut Kullanıcı Bilgileri:`n" -ForegroundColor Cyan
+    Write-Host "Hesap: $($kullanici.Hesap)" -ForegroundColor Yellow
+    Write-Host "Email: $($kullanici.Email)" -ForegroundColor Yellow
+    Write-Host "Şifre: (Gizli)" -ForegroundColor Red  # Şifreyi gizli tutalım
+
+
+        # Kullanıcıdan yeni bilgileri al
+# Kullanıcıdan yeni bilgiler alırken renklendirme
+Write-Host "`nBilgi Güncelleme:" -ForegroundColor Cyan
+$yeniHesap = Read-Host -Prompt "Yeni Hesap Adı girin (boş bırakmak mevcut değeri korur)"
+$yeniEmail = Read-Host -Prompt "Yeni E-posta adresi girin (boş bırakmak mevcut değeri korur)"
+$yeniSifre = Read-Host -Prompt "Yeni Şifre girin (boş bırakmak mevcut değeri korur)"
+
+
+        # Mevcut değerleri korumak için boş değerleri kontrol et
+        if (-not [string]::IsNullOrWhiteSpace($yeniHesap)) {
+            $kullanici.Hesap = $yeniHesap
+        }
+        if (-not [string]::IsNullOrWhiteSpace($yeniEmail)) {
+            $kullanici.Email = $yeniEmail
+        }
+        if (-not [string]::IsNullOrWhiteSpace($yeniSifre)) {
+            $kullanici.Sifre = $yeniSifre
+        }
+
+        # Verileri geri yaz
+        $jsonData = $kullaniciVerileri | ConvertTo-Json -Depth 3
+        $encryptedData = Encrypt-Data -Data $jsonData -Key $sifrelemeAnahtari
+        Set-Content -Path $dosyaYolu -Value $encryptedData -Encoding UTF8
+
+        Write-Host "`nKullanıcı başarıyla güncellendi. ID: $($kullanici.ID)`n" -ForegroundColor Green
+    } else {
+        Write-Host "Geçersiz ID girdiniz. Lütfen bir sayı girin." -ForegroundColor Red
+    }
+    Write-Host "`nAna menüye dönmek için bir tuşa basın..." -ForegroundColor Cyan
+    Read-Host | Out-Null
+
+}
+
+        "4" {
             $aramaKriteri = Read-Host "Arama yapmak istediğiniz Hesap, Email veya Şifre girin"
             KullaniciAra -aramaKriteri $aramaKriteri -dosyaYolu $dosyaYolu -sifrelemeAnahtari $sifrelemeAnahtari
             Read-Host "`nArama tamamlandı. Ana menüye dönmek için bir tuşa basın..."
         }
-        "4" {
+        "5" {
             $hesap = Read-Host "Hesap Adını Girin"
             $email = Read-Host "Email Girin"
             if ($email) {
@@ -397,7 +591,7 @@ function AnaMenu {
             }
             Read-Host "Ana menüye dönmek için bir tuşa basın..."
         }
-        "5" {
+        "6" {
             $id = Read-Host "Silmek istediğiniz Kullanıcı ID'sini girin"
             if ([int]::TryParse($id, [ref]$null)) {
                 $id = [int]$id  # Burada dönüşüm yapıyoruz
@@ -408,61 +602,79 @@ function AnaMenu {
             }
             Read-Host "Ana menüye dönmek için bir tuşa basın..."
         }
-        "6" {
-            $ftpAyarlar = SunucuAyarlariniYukle -dosyaYolu ".\settings.json" -sifrelemeAnahtari $sifrelemeAnahtari
-            if ($null -eq $ftpAyarlar) {
-                Write-Output "`nLütfen Önce Sunucu Ayarlarını Yapın.`n"
-            } else {
-                $ftpKullaniciAdi = $ftpAyarlar.FtpKullaniciAdi
-                $ftpSifre = $ftpAyarlar.FtpSifre
-                $ftpAdres = $ftpAyarlar.FtpAdres
-                $ftpKonum = $ftpAyarlar.FtpKonum
-                Write-Output "`nFTP İşlem Detayları: Kullanıcı - $ftpKullaniciAdi, Şifre - $ftpSifre, Adres - $ftpAdres, Konum - $ftpKonum`n"
-                FtpYedekYukle -ftpKullaniciAdi $ftpKullaniciAdi -ftpSifre $ftpSifre -ftpAdres $ftpAdres -ftpKonum $ftpKonum -dosyaYolu "bt.json"
-            }
-            Read-Host "Ana menüye dönmek için bir tuşa basın..."
-        }
-        "8" {
-            $ftpAyarlar = SunucuAyarlariniYukle -dosyaYolu ".\settings.json" -sifrelemeAnahtari $sifrelemeAnahtari
-            
-            if ($null -eq $ftpAyarlar) {
-                $ftpKullaniciAdi = Read-Host "FTP Kullanıcı Adını Girin"
-                $ftpSifre = Read-Host "FTP Şifresini Girin"
-                $ftpAdres = Read-Host "FTP Adresini Girin"
-                $ftpKonum = Read-Host "FTP Konumunu Girin"
-                SunucuAyarlariniKaydet -ftpKullaniciAdi $ftpKullaniciAdi -ftpSifre $ftpSifre -ftpAdres $ftpAdres -ftpKonum $ftpKonum -dosyaYolu ".\settings.json" -sifrelemeAnahtari $sifrelemeAnahtari
-                Write-Output "Yeni ayarlar kaydedildi."
-            } else {
-                Write-Output "Mevcut FTP Ayarları:"
-                Write-Output "FTP ADRES: $($ftpAyarlar.FtpAdres)"
-                Write-Output "FTP KULLANICI ADI: $($ftpAyarlar.FtpKullaniciAdi)"
-                $devamEt = Read-Host "Yeni ayar girmek ister misiniz? (E/H)"
-                if ($devamEt -eq "E") {
-                    $ftpKullaniciAdi = Read-Host "Yeni FTP Kullanıcı Adını Girin"
-                    $ftpSifre = Read-Host "Yeni FTP Şifresini Girin"
-                    $ftpAdres = Read-Host "Yeni FTP Adresini Girin"
-                    $ftpKonum = Read-Host "Yeni FTP Konumunu Girin"
-                    SunucuAyarlariniKaydet -ftpKullaniciAdi $ftpKullaniciAdi -ftpSifre $ftpSifre -ftpAdres $ftpAdres -ftpKonum $ftpKonum -dosyaYolu ".\settings.json" -sifrelemeAnahtari $sifrelemeAnahtari
-                    Write-Output "Yeni ayarlar kaydedildi."
-                }
-            }
-            Read-Host "Ana menüye dönmek için bir tuşa basın..."
-        }
-	   
-	   
         "7" {
-            $ftpAyarlar = SunucuAyarlariniYukle -dosyaYolu ".\settings.json" -sifrelemeAnahtari $sifrelemeAnahtari
+            $ftpAyarlar = SunucuAyarlariniYukle -dosyaYolu $ftpBilgileriDosyaYolu -sifrelemeAnahtari $sifrelemeAnahtari
             if ($null -eq $ftpAyarlar) {
-                Write-Output "`nLütfen Önce Sunucu Ayarlarını Yapın.`n"
+                Write-Host "`nLütfen Önce Sunucu Ayarlarını Yapın.`n" -ForegroundColor Red
             } else {
-                $ftpKullaniciAdi = $ftpAyarlar.FtpKullaniciAdi
-                $ftpSifre = $ftpAyarlar.FtpSifre
-                $ftpAdres = $ftpAyarlar.FtpAdres
-                $ftpKonum = $ftpAyarlar.FtpKonum
-                FtpYedekIndir -ftpKullaniciAdi $ftpKullaniciAdi -ftpSifre $ftpSifre -ftpAdres $ftpAdres -ftpKonum $ftpKonum -dosyaAdi "bt.json" -hedefDosyaAdi "bt_yedek.json"
+                Write-Host "`nFTP İşlem Detayları:" -ForegroundColor Cyan
+                Write-Host "  Kullanıcı: $ftpKullaniciAdi" -ForegroundColor Yellow
+                Write-Host "  Şifre: $ftpSifre" -ForegroundColor Yellow
+                Write-Host "  Adres: $ftpAdres" -ForegroundColor Yellow
+                Write-Host "  Konum: $ftpKonum" -ForegroundColor Yellow
+                Write-Output "`nFTP İşlem Detayları: Kullanıcı - $ftpKullaniciAdi, Şifre - $ftpSifre, Adres - $ftpAdres, Konum - $ftpKonum`n"
+                FtpYedekYukle -ftpKullaniciAdi $ftpKullaniciAdi -ftpSifre $ftpSifre -ftpAdres $ftpAdres -ftpKonum $ftpKonum -dosyaYolu $ftpYuklenenDosya
             }
             Read-Host "Ana menüye dönmek için bir tuşa basın..."
         }
+
+	   
+	   
+"8" {
+    $ftpAyarlar = SunucuAyarlariniYukle -dosyaYolu $ftpBilgileriDosyaYolu -sifrelemeAnahtari $sifrelemeAnahtari
+    if ($null -eq $ftpAyarlar) {
+        Write-Host "`nLütfen Önce Sunucu Ayarlarını Yapın.`n" -ForegroundColor Red
+    } else {
+        $ftpKullaniciAdi = $ftpAyarlar.FtpKullaniciAdi
+        $ftpSifre = $ftpAyarlar.FtpSifre
+        $ftpAdres = $ftpAyarlar.FtpAdres
+        $ftpKonum = $ftpAyarlar.FtpKonum
+        
+        Write-Host "`nFTP İşlem Detayları:" -ForegroundColor Cyan
+        Write-Host "  Kullanıcı: $ftpKullaniciAdi" -ForegroundColor Yellow
+        Write-Host "  Şifre: $ftpSifre" -ForegroundColor Yellow
+        Write-Host "  Adres: $ftpAdres" -ForegroundColor Yellow
+        Write-Host "  Konum: $ftpKonum" -ForegroundColor Yellow
+
+        FtpYedekIndir -ftpKullaniciAdi $ftpKullaniciAdi -ftpSifre $ftpSifre -ftpAdres $ftpAdres -ftpKonum $ftpKonum -dosyaAdi $ftpYuklenenDosya -hedefDosyaAdi $ftpGelenDosya
+    }
+    Write-Host "`nAna menüye dönmek için bir tuşa basın..." -ForegroundColor Cyan
+    Read-Host | Out-Null
+}
+
+
+"9" {
+    $ftpAyarlar = SunucuAyarlariniYukle -dosyaYolu $ftpBilgileriDosyaYolu -sifrelemeAnahtari $sifrelemeAnahtari
+    
+    if ($null -eq $ftpAyarlar) {
+        Write-Host "`nYeni FTP Ayarlarını Girmek İçin Bilgileri Girin:" -ForegroundColor Cyan
+        $ftpKullaniciAdi = Read-Host "FTP Kullanıcı Adını Girin"
+        $ftpSifre = Read-Host "FTP Şifresini Girin"
+        $ftpAdres = Read-Host "FTP Adresini Girin"
+        $ftpKonum = Read-Host "FTP Konumunu Girin"
+        SunucuAyarlariniKaydet -ftpKullaniciAdi $ftpKullaniciAdi -ftpSifre $ftpSifre -ftpAdres $ftpAdres -ftpKonum $ftpKonum -dosyaYolu $ftpBilgileriDosyaYolu -sifrelemeAnahtari $sifrelemeAnahtari
+        Write-Host "Yeni ayarlar kaydedildi." -ForegroundColor Green
+    } else {
+        Write-Host "`nMevcut FTP Ayarları:" -ForegroundColor Cyan
+        Write-Host "  FTP ADRES: $($ftpAyarlar.FtpAdres)" -ForegroundColor Yellow
+        Write-Host "  FTP KULLANICI ADI: $($ftpAyarlar.FtpKullaniciAdi)" -ForegroundColor Yellow
+        $devamEt = Read-Host "Yeni ayar girmek ister misiniz? (E/H)"
+        if ($devamEt -eq "E") {
+            Write-Host "`nYeni FTP Ayarlarını Girmek İçin Bilgileri Girin:" -ForegroundColor Cyan
+            $ftpKullaniciAdi = Read-Host "Yeni FTP Kullanıcı Adını Girin"
+            $ftpSifre = Read-Host "Yeni FTP Şifresini Girin"
+            $ftpAdres = Read-Host "Yeni FTP Adresini Girin"
+            $ftpKonum = Read-Host "Yeni FTP Konumunu Girin"
+            SunucuAyarlariniKaydet -ftpKullaniciAdi $ftpKullaniciAdi -ftpSifre $ftpSifre -ftpAdres $ftpAdres -ftpKonum $ftpKonum -dosyaYolu $ftpBilgileriDosyaYolu -sifrelemeAnahtari $sifrelemeAnahtari
+            Write-Host "Yeni ayarlar kaydedildi." -ForegroundColor Green
+        }
+    }
+    Write-Host "`nAna menüye dönmek için bir tuşa basın..." -ForegroundColor Cyan
+    Read-Host | Out-Null
+}
+
+
+
 
         "0" {
             exit
@@ -474,46 +686,7 @@ function AnaMenu {
     }
     AnaMenu
 }
-function FtpYedekIndir {
-    param (
-        [string]$ftpKullaniciAdi,
-        [string]$ftpSifre,
-        [string]$ftpAdres,
-        [string]$ftpKonum,
-        [string]$dosyaAdi,
-        [string]$hedefDosyaAdi
-    )
-    # FTP bağlantı bilgilerini ayarla
-    $ftpUri = "$ftpAdres/$ftpKonum/$dosyaAdi"
-    $currentDirectory = (Get-Location).Path
-    $hedefDosyaYolu = Join-Path -Path $currentDirectory -ChildPath $hedefDosyaAdi
-    
-    try {
-        Write-Output "`nDosya indiriliyor: $ftpUri"
-        $webClient = New-Object System.Net.WebClient
-        $webClient.Credentials = New-Object System.Net.NetworkCredential($ftpKullaniciAdi, $ftpSifre)
-        
-        # Dosya indirme işlemi
-        $webClient.DownloadFile($ftpUri, $hedefDosyaYolu)
-        Write-Output "`nVeritabanı dosyası başarıyla '$hedefDosyaYolu' olarak indirildi.`n"
-    } catch {
-        # Hata durumunda daha fazla bilgi yazdır
-        if ($_.Exception.Response) {
-            $statusCode = $_.Exception.Response.StatusCode
-            $statusDescription = $_.Exception.Response.StatusDescription
-            
-            if ($statusCode -eq 550) {
-                Write-Output "`nYedek dosyası FTP'de bulunmuyor.`n"
-            } else {
-                Write-Output "`nHata: $statusCode - $statusDescription`n"
-            }
-        } else {
-            Write-Output "`nHata: $($_.Exception.Message)`n"
-        }
-        Write-Output "`nFTP sunu üzerinde daha önce alınmış herhangi bir yedek bulunmuyor.`n"
-    }
-}
 
 
-# Ana menüyü başlat
-AnaMenu
+
+GirisKontrol  # Giriş kontrolü ile başlatılı
